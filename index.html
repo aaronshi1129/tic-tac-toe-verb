@@ -1,0 +1,496 @@
+<html><head><base href="." />
+<style>
+:root {
+  --main-color: #2c3e50;
+  --accent-color: #e74c3c;
+  --grid-color: #34495e;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: var(--main-color);
+  color: white;
+}
+
+.game-title {
+  font-size: 2.5em;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+.game-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.game-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  background-color: var(--grid-color);
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.cell {
+  width: 150px;
+  height: 150px;
+  background-color: var(--main-color);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  border: 3px solid transparent;
+}
+
+.cell:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.cell.selected {
+  border-color: #f1c40f;
+}
+
+.verb-base {
+  font-weight: bold;
+  font-size: 1.2em;
+}
+
+.input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.verb-input {
+  width: 200px;
+  padding: 8px;
+  border: none;
+  border-radius: 3px;
+  font-size: 1em;
+}
+
+.status {
+  margin-top: 20px;
+  font-size: 1.5em;
+}
+
+.reset-btn {
+  margin-top: 20px;
+  padding: 10px 20px;
+  font-size: 1.2em;
+  background-color: var(--accent-color);
+  border: none;
+  border-radius: 5px;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.reset-btn:hover {
+  transform: scale(1.05);
+}
+
+.cell.correct.player-x {
+  background-color: #e74c3c;
+}
+
+.cell.correct.player-o {
+  background-color: #3498db;
+}
+
+.player-mark {
+  position: absolute;
+  font-size: 3em;
+  color: white;
+}
+
+.author-credit {
+  margin-top: 20px;
+  font-size: 0.9em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.congratulations {
+  font-size: 2em;
+  color: #f1c40f;
+  text-align: center;
+  animation: celebrate 0.5s ease-in-out infinite alternate;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+@keyframes celebrate {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.1);
+  }
+}
+
+/* Add new styles for the nickname modal */
+.nickname-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.nickname-form {
+  background-color: var(--main-color);
+  padding: 30px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 300px;
+}
+
+.nickname-input {
+  padding: 8px;
+  border: none;
+  border-radius: 3px;
+  font-size: 1em;
+}
+
+.start-btn {
+  padding: 10px 20px;
+  font-size: 1.2em;
+  background-color: var(--accent-color);
+  border: none;
+  border-radius: 5px;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.start-btn:hover {
+  transform: scale(1.05);
+}
+</style>
+</head>
+<body>
+  <div id="nicknameModal" class="nickname-modal">
+    <div class="nickname-form">
+      <h2>Enter Player Names</h2>
+      <input type="text" id="player1Name" class="nickname-input" placeholder="Player X Name" required>
+      <input type="text" id="player2Name" class="nickname-input" placeholder="Player O Name" required>
+      <button class="start-btn" onclick="startGame()">Start Game</button>
+    </div>
+  </div>
+
+  <h1 class="game-title">Verb Conjugation Tic-tac-toe</h1>
+  <div class="game-container">
+    <div class="status" id="status">X's turn - Select a word</div>
+    <div class="game-board" id="board"></div>
+    <div class="input-container" id="inputContainer">
+      <input type="text" class="verb-input" id="pastInput" placeholder="Type past tense here" disabled>
+      <input type="text" class="verb-input" id="perfectInput" placeholder="Type past perfect here" disabled>
+    </div>
+    <button class="reset-btn" id="resetBtn">Reset Game</button>
+  </div>
+  <div class="author-credit">Author: Aaron Shi. Released in 2024.</div>
+
+<script>
+const verbs = [
+{base: 'beat', past: 'beat', perfect: 'beaten'},
+{base: 'become', past: 'became', perfect: 'become'},
+{base: 'begin', past: 'began', perfect: 'begun'},
+{base: 'bend', past: 'bent', perfect: 'bent'},
+{base: 'bet', past: 'bet', perfect: 'bet'},
+{base: 'bite', past: 'bit', perfect: 'bitten'},
+{base: 'bleed', past: 'bled', perfect: 'bled'},
+{base: 'blow', past: 'blew', perfect: 'blown'},
+{base: 'break', past: 'broke', perfect: 'broken'},
+{base: 'breed', past: 'bred', perfect: 'bred'},
+{base: 'bring', past: 'brought', perfect: 'brought'},
+{base: 'build', past: 'built', perfect: 'built'},
+{base: 'burn', past: ['burned', 'burnt'], perfect: ['burned', 'burnt']},
+{base: 'buy', past: 'bought', perfect: 'bought'},
+{base: 'catch', past: 'caught', perfect: 'caught'},
+{base: 'choose', past: 'chose', perfect: 'chosen'},
+{base: 'come', past: 'came', perfect: 'come'},
+{base: 'cost', past: 'cost', perfect: 'cost'},
+{base: 'cut', past: 'cut', perfect: 'cut'},
+{base: 'do', past: 'did', perfect: 'done'},
+{base: 'dig', past: 'dug', perfect: 'dug'},
+{base: 'draw', past: 'drew', perfect: 'drawn'},
+{base: 'dream', past: ['dreamed', 'dreamt'], perfect: ['dreamed', 'dreamt']},
+{base: 'drink', past: 'drank', perfect: 'drunk'},
+{base: 'drive', past: 'drove', perfect: 'driven'},
+{base: 'eat', past: 'ate', perfect: 'eaten'},
+{base: 'fall', past: 'fell', perfect: 'fallen'},
+{base: 'feed', past: 'fed', perfect: 'fed'},
+{base: 'feel', past: 'felt', perfect: 'felt'},
+{base: 'fight', past: 'fought', perfect: 'fought'},
+{base: 'find', past: 'found', perfect: 'found'},
+{base: 'fly', past: 'flew', perfect: 'flown'},
+{base: 'forget', past: 'forgot', perfect: 'forgotten'},
+{base: 'forgive', past: 'forgave', perfect: 'forgiven'},
+{base: 'freeze', past: 'froze', perfect: 'frozen'},
+{base: 'get', past: 'got', perfect: ['gotten', 'got']},
+{base: 'give', past: 'gave', perfect: 'given'},
+{base: 'go', past: 'went', perfect: 'gone'},
+{base: 'grow', past: 'grew', perfect: 'grown'},
+{base: 'have', past: 'had', perfect: 'had'},
+{base: 'hear', past: 'heard', perfect: 'heard'},
+{base: 'hide', past: 'hid', perfect: 'hidden'},
+{base: 'hit', past: 'hit', perfect: 'hit'},
+{base: 'hold', past: 'held', perfect: 'held'},
+{base: 'hurt', past: 'hurt', perfect: 'hurt'},
+{base: 'keep', past: 'kept', perfect: 'kept'},
+{base: 'know', past: 'knew', perfect: 'known'},
+{base: 'lay', past: 'laid', perfect: 'laid'},
+{base: 'lead', past: 'led', perfect: 'led'},
+{base: 'lean', past: ['leaned', 'leant'], perfect: ['leaned', 'leant']},
+{base: 'leave', past: 'left', perfect: 'left'},
+{base: 'lend', past: 'lent', perfect: 'lent'},
+{base: 'let', past: 'let', perfect: 'let'},
+{base: 'lose', past: 'lost', perfect: 'lost'},
+{base: 'make', past: 'made', perfect: 'made'},
+{base: 'mean', past: 'meant', perfect: 'meant'},
+{base: 'meet', past: 'met', perfect: 'met'},
+{base: 'pay', past: 'paid', perfect: 'paid'},
+{base: 'put', past: 'put', perfect: 'put'},
+{base: 'quit', past: 'quit', perfect: 'quit'},
+{base: 'read', past: 'read', perfect: 'read'},
+{base: 'ride', past: 'rode', perfect: 'ridden'},
+{base: 'ring', past: 'rang', perfect: 'rung'},
+{base: 'rise', past: 'rose', perfect: 'risen'},
+{base: 'say', past: 'said', perfect: 'said'},
+{base: 'see', past: 'saw', perfect: 'seen'},
+{base: 'sell', past: 'sold', perfect: 'sold'},
+{base: 'send', past: 'sent', perfect: 'sent'},
+{base: 'set', past: 'set', perfect: 'set'},
+{base: 'shake', past: 'shook', perfect: 'shaken'},
+{base: 'shine', past: 'shone', perfect: 'shone'},
+{base: 'shoe', past: 'shod', perfect: 'shod'},
+{base: 'shoot', past: 'shot', perfect: 'shot'},
+{base: 'show', past: 'showed', perfect: 'shown'},
+{base: 'shrink', past: 'shrank', perfect: 'shrunk'},
+{base: 'shut', past: 'shut', perfect: 'shut'},
+{base: 'sink', past: 'sank', perfect: 'sunk'},
+{base: 'sit', past: 'sat', perfect: 'sat'},
+{base: 'sleep', past: 'slept', perfect: 'slept'},
+{base: 'speak', past: 'spoke', perfect: 'spoken'},
+{base: 'spend', past: 'spent', perfect: 'spent'},
+{base: 'spill', past: ['spilled', 'spilt'], perfect: ['spilled', 'spilt']},
+{base: 'spread', past: 'spread', perfect: 'spread'},
+{base: 'speed', past: 'sped', perfect: 'sped'},
+{base: 'stand', past: 'stood', perfect: 'stood'},
+{base: 'steal', past: 'stole', perfect: 'stolen'},
+{base: 'stick', past: 'stuck', perfect: 'stuck'},
+{base: 'sting', past: 'stung', perfect: 'stung'},
+{base: 'stink', past: 'stank', perfect: 'stunk'},
+{base: 'swear', past: 'swore', perfect: 'sworn'},
+{base: 'sweep', past: 'swept', perfect: 'swept'},
+{base: 'swim', past: 'swam', perfect: 'swum'},
+{base: 'swing', past: 'swung', perfect: 'swung'},
+{base: 'take', past: 'took', perfect: 'taken'},
+{base: 'teach', past: 'taught', perfect: 'taught'},
+{base: 'tear', past: 'tore', perfect: 'torn'},
+{base: 'tell', past: 'told', perfect: 'told'},
+{base: 'think', past: 'thought', perfect: 'thought'},
+{base: 'throw', past: 'threw', perfect: 'thrown'},
+{base: 'wake', past: 'woke', perfect: 'woken'},
+{base: 'wear', past: 'wore', perfect: 'worn'},
+{base: 'win', past: 'won', perfect: 'won'},
+{base: 'write', past: 'wrote', perfect: 'written'}
+];
+
+let currentPlayer = 'X';
+let player1Name = '';
+let player2Name = '';
+let gameActive = false; // Changed to false initially
+let gameState = Array(9).fill('');
+let usedVerbs = [];
+let selectedCell = null;
+
+function startGame() {
+  player1Name = document.getElementById('player1Name').value.trim() || 'Player X';
+  player2Name = document.getElementById('player2Name').value.trim() || 'Player O';
+  
+  document.getElementById('nicknameModal').style.display = 'none';
+  gameActive = true;
+  resetGame();
+}
+
+function getCurrentPlayerName() {
+  return currentPlayer === 'X' ? player1Name : player2Name;
+}
+
+function showCongratulations(winner) {
+  const status = document.getElementById('status');
+  status.className = 'status congratulations';
+  const winnerName = winner === 'X' ? player1Name : player2Name;
+  status.textContent = `🎉 Congratulations! ${winnerName} wins! 🎉`;
+}
+
+function createBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  
+  const shuffledVerbs = [...verbs].sort(() => Math.random() - 0.5).slice(0, 9);
+  usedVerbs = shuffledVerbs;
+
+  for (let i = 0; i < 9; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.dataset.index = i;
+
+    const verbBase = document.createElement('div');
+    verbBase.className = 'verb-base';
+    verbBase.textContent = shuffledVerbs[i].base;
+
+    cell.appendChild(verbBase);
+    board.appendChild(cell);
+  }
+}
+
+function checkAnswer(index) {
+  const verb = usedVerbs[index];
+  const pastInput = document.getElementById('pastInput').value.trim().toLowerCase();
+  const perfectInput = document.getElementById('perfectInput').value.trim().toLowerCase();
+
+  const isPastCorrect = Array.isArray(verb.past) 
+    ? verb.past.includes(pastInput)
+    : pastInput === verb.past;
+    
+  const isPerfectCorrect = Array.isArray(verb.perfect)
+    ? verb.perfect.includes(perfectInput)
+    : perfectInput === verb.perfect;
+
+  if (isPastCorrect && isPerfectCorrect) {
+    const cell = document.querySelector(`[data-index="${index}"]`);
+    cell.classList.remove('selected');
+    cell.classList.add('correct', `player-${currentPlayer.toLowerCase()}`);
+    
+    const mark = document.createElement('div');
+    mark.className = 'player-mark';
+    mark.textContent = currentPlayer;
+    cell.appendChild(mark);
+    
+    gameState[index] = currentPlayer;
+    return true;
+  } else {
+    const status = document.getElementById('status');
+    status.textContent = `Almost there! Try again, ${getCurrentPlayerName()}!`;
+    document.getElementById('pastInput').value = '';
+    document.getElementById('perfectInput').value = '';
+    document.getElementById('pastInput').focus();
+    return false;
+  }
+}
+
+function checkWin() {
+  const winningCombinations = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6]
+  ];
+
+  for (const combination of winningCombinations) {
+    const [a, b, c] = combination;
+    if (gameState[a] && gameState[a] === gameState[b] && gameState[a] === gameState[c]) {
+      gameActive = false;
+      showCongratulations(gameState[a]);
+      disableInputs();
+      return true;
+    }
+  }
+
+  if (!gameState.includes('')) {
+    gameActive = false;
+    document.getElementById('status').textContent = "It's a draw!";
+    disableInputs();
+    return true;
+  }
+  return false;
+}
+
+function handleCellClick(event) {
+  if (!gameActive) return;
+  
+  const cell = event.target.closest('.cell');
+  if (!cell || gameState[cell.dataset.index]) return;
+  
+  if (selectedCell !== null) {
+    document.querySelector(`[data-index="${selectedCell}"]`).classList.remove('selected');
+  }
+  
+  selectedCell = cell.dataset.index;
+  cell.classList.add('selected');
+  
+  document.getElementById('pastInput').disabled = false;
+  document.getElementById('perfectInput').disabled = false;
+  document.getElementById('pastInput').focus();
+  
+  document.getElementById('status').textContent = `${getCurrentPlayerName()}'s turn - Type the verb forms`;
+  document.getElementById('status').className = 'status';
+}
+
+function handleInput(event) {
+  if (!gameActive || selectedCell === null) return;
+
+  if (event.key === 'Enter') {
+    if (checkAnswer(selectedCell)) {
+      if (!checkWin()) {
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        document.getElementById('status').textContent = `${getCurrentPlayerName()}'s turn - Select a word`;
+      }
+      document.getElementById('pastInput').value = '';
+      document.getElementById('perfectInput').value = '';
+      disableInputs();
+      selectedCell = null;
+    }
+  }
+}
+
+function resetGame() {
+  gameState = Array(9).fill('');
+  gameActive = true;
+  currentPlayer = 'X';
+  selectedCell = null;
+  document.getElementById('status').textContent = `${getCurrentPlayerName()}'s turn - Select a word`;
+  document.getElementById('status').className = 'status';
+  disableInputs();
+  createBoard();
+}
+
+function disableInputs() {
+  document.getElementById('pastInput').disabled = true;
+  document.getElementById('perfectInput').disabled = true;
+  document.getElementById('pastInput').value = '';
+  document.getElementById('perfectInput').value = '';
+}
+
+document.getElementById('board').addEventListener('click', handleCellClick);
+document.getElementById('pastInput').addEventListener('keypress', handleInput);
+document.getElementById('perfectInput').addEventListener('keypress', handleInput);
+document.getElementById('resetBtn').addEventListener('click', resetGame);
+
+// Initialize the game
+createBoard();
+</script>
+</body>
+</html>
